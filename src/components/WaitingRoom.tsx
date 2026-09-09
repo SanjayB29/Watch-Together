@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Room, Participant } from '@/types';
 import { Copy, Check, Users, Shield, Play, Loader2, Sparkles } from 'lucide-react';
 
@@ -13,9 +13,18 @@ interface WaitingRoomProps {
 
 export function WaitingRoom({ room, selfParticipant, isHost, onStartWatching }: WaitingRoomProps) {
   const [copied, setCopied] = useState(false);
+  const [tunnelOrigin, setTunnelOrigin] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/tunnel-url')
+      .then((r) => r.json())
+      .then((data) => { if (data.url) setTunnelOrigin(data.url); })
+      .catch(() => {});
+  }, []);
 
   const participantsList = Object.values(room.participants || {});
-  const joinUrl = typeof window !== 'undefined' ? `${window.location.origin}/r/${room.roomCode}` : '';
+  const origin = tunnelOrigin ?? (typeof window !== 'undefined' ? window.location.origin : '');
+  const joinUrl = origin ? `${origin}/r/${room.roomCode}` : '';
 
   const handleCopyLink = () => {
     if (!joinUrl) return;
