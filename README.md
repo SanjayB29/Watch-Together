@@ -132,12 +132,54 @@ npm start
 
 ---
 
+## 🚢 Deploy to Vercel
+
+CineLink is fully serverless — no custom server required. Room state lives in **Upstash Redis** and real-time events go through **Pusher**. Both have generous free tiers.
+
+### 1. Create a Pusher app
+
+1. Sign up at [pusher.com](https://pusher.com) → **Create App**
+2. Choose any cluster (e.g. `us2`) and enable **Channels**
+3. Note your **App ID**, **Key**, **Secret**, and **Cluster**
+
+### 2. Create an Upstash Redis database
+
+1. Sign up at [upstash.com](https://upstash.com) → **Create Database**
+2. Pick any region and enable **REST API**
+3. Copy the **REST URL** and **REST Token**
+
+### 3. Deploy
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel --prod
+```
+
+Or connect your GitHub repo in the [Vercel dashboard](https://vercel.com/new) for automatic deploys on every push.
+
+### 4. Set environment variables
+
+In the Vercel project dashboard → **Settings → Environment Variables**, add:
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_PUSHER_KEY` | Pusher app key |
+| `NEXT_PUBLIC_PUSHER_CLUSTER` | Pusher cluster (e.g. `us2`) |
+| `PUSHER_APP_ID` | Pusher app ID |
+| `PUSHER_SECRET` | Pusher secret |
+| `UPSTASH_REDIS_REST_URL` | Upstash REST URL |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash REST token |
+
+Copy [`.env.local.example`](.env.local.example) as `.env.local` for local development.
+
+---
+
 ## ⚙️ Environment Variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `PORT` | `3000` | Port the server listens on |
-| `NODE_ENV` | `development` | Set to `production` for production builds |
+See [`.env.local.example`](.env.local.example) for a full list with descriptions.
 
 ---
 

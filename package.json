@@ -3,16 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "tsx server.ts",
+    "dev": "next dev",
     "build": "next build",
-    "start": "NODE_ENV=production tsx server.ts",
+    "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@upstash/redis": "^1.38.4",
     "clsx": "^2.1.1",
     "lucide-react": "^1.43.0",
     "nanoid": "^6.0.1",
     "next": "14.2.35",
+    "pusher": "^5.3.4",
+    "pusher-js": "^8.6.0",
     "react": "^18",
     "react-dom": "^18",
     "tailwind-merge": "^3.6.0",

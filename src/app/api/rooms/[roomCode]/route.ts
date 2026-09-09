@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { roomManager } from '@/server/roomManager';
+import { getRoom } from '@/lib/redis';
 
-// GET /api/rooms/:roomCode - Get room preview info
+// GET /api/rooms/:roomCode — Get room preview info
 export async function GET(req: NextRequest, { params }: { params: { roomCode: string } }) {
   const { roomCode } = params;
-  const room = roomManager.getRoom(roomCode);
+  const room = await getRoom(roomCode);
 
   if (!room) {
     return NextResponse.json({ success: false, error: 'Room not found or expired' }, { status: 404 });
