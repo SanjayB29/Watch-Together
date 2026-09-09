@@ -23,6 +23,7 @@ export default function RoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [tunnelOrigin, setTunnelOrigin] = useState<string | null>(null);
 
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -88,6 +89,13 @@ export default function RoomPage() {
       console.warn(`[sendWS] dropped ${msg.type} — WS not open (state=${wsRef.current?.readyState})`);
     }
   };
+
+  useEffect(() => {
+    fetch('/api/tunnel-url')
+      .then((r) => r.json())
+      .then((data) => { if (data.url) setTunnelOrigin(data.url); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!roomCode) return;
@@ -681,7 +689,8 @@ export default function RoomPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
-              navigator.clipboard.writeText(window.location.href);
+              const base = tunnelOrigin ?? window.location.origin;
+              navigator.clipboard.writeText(`${base}/r/${roomCode}`);
               setCopiedLink(true);
               setTimeout(() => setCopiedLink(false), 2000);
             }}

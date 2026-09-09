@@ -63,6 +63,17 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+A few seconds after startup you will also see a **public Cloudflare tunnel URL** printed in the terminal:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  🌐 Public tunnel active — share this link with viewers  │
+│  https://xxxx-xxxx.trycloudflare.com                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+Share that URL with anyone on the internet — they can join your room without any additional setup. The tunnel is a free [Cloudflare Quick Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/) that requires no account. It is only started in development mode (`npm run dev`) and is automatically cleaned up when you stop the server.
+
 ### Production
 
 ```bash
