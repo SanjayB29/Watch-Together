@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Room, Participant, ChatMessage, WSServerMessage, WSClientMessage, PlaybackState } from '@/types';
 import { WaitingRoom } from '@/components/WaitingRoom';
@@ -25,6 +25,12 @@ export default function RoomPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [tunnelOrigin, setTunnelOrigin] = useState<string | null>(null);
 
+  // Name prompt: shown to guests who land directly via link with no stored name.
+  // Start as false; useLayoutEffect sets it synchronously before paint using the
+  // correct roomCode from params — so hosts never see the modal even for one frame.
+  const [namePromptReady, setNamePromptReady] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -44,6 +50,8 @@ export default function RoomPage() {
   // Stale-closure fix: ws.onmessage is set once, so it must call the latest version
   // of handleServerMessage via this ref rather than the captured closure.
   const handleServerMessageRef = useRef<(msg: WSServerMessage) => void>(() => {});
+  // Called imperatively to kick off the WS connection once the viewer's name is known.
+  const connectWSRef = useRef<(() => void) | null>(null);
   // Viewer: remote stream may arrive before the <video> element mounts.
   // Store it here so the mount effect can attach it.
   const pendingRemoteStreamRef = useRef<MediaStream | null>(null);
@@ -90,6 +98,16 @@ export default function RoomPage() {
     }
   };
 
+  // Runs synchronously before paint — no flash of the name modal for hosts.
+  useLayoutEffect(() => {
+    if (!roomCode) return;
+    const isHostSession = localStorage.getItem(`cinelink_role_${roomCode}`) === 'host';
+    const storedName = localStorage.getItem(`cinelink_name_${roomCode}`);
+    if (isHostSession || storedName) {
+      setNamePromptReady(true);
+    }
+  }, [roomCode]);
+
   useEffect(() => {
     fetch('/api/tunnel-url')
       .then((r) => r.json())
@@ -103,6 +121,7 @@ export default function RoomPage() {
     let isUnmounted = false;
     let ws: WebSocket | null = null;
     let retryTimeout: NodeJS.Timeout | null = null;
+    let connected = false;
 
     const connectWebSocket = () => {
       if (isUnmounted) return;
@@ -161,10 +180,25 @@ export default function RoomPage() {
       };
     };
 
-    connectWebSocket();
+    // Expose connectWebSocket so the name-prompt submit can trigger it imperatively.
+    // Guard with `connected` so calling it before name is ready is a no-op.
+    const maybeConnect = () => {
+      if (connected || isUnmounted) return;
+      connected = true;
+      connectWebSocket();
+    };
+    connectWSRef.current = maybeConnect;
+
+    // If the name is already known (host or returning viewer), connect immediately.
+    const isHostSession = localStorage.getItem(`cinelink_role_${roomCode}`) === 'host';
+    const storedName = localStorage.getItem(`cinelink_name_${roomCode}`);
+    if (isHostSession || storedName) {
+      maybeConnect();
+    }
 
     return () => {
       isUnmounted = true;
+      connectWSRef.current = null;
       if (retryTimeout) clearTimeout(retryTimeout);
       if (ws) ws.close();
       hostWebRTCRef.current?.closeAll();
@@ -633,6 +667,47 @@ export default function RoomPage() {
 
     return () => clearInterval(interval);
   }, [isHost, roomCode]);
+
+  // Name prompt modal — shown to guests who arrived via direct link with no stored name
+  if (!namePromptReady) {
+    const handleNameSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      const name = nameInput.trim() || 'Guest';
+      localStorage.setItem(`cinelink_name_${roomCode}`, name);
+      setNamePromptReady(true);
+      // Trigger the WS connection now that the name is stored.
+      connectWSRef.current?.();
+    };
+
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="bg-surface/80 border border-surface-border rounded-2xl p-8 w-full max-w-sm backdrop-blur-xl shadow-2xl">
+          <div className="text-center mb-6">
+            <span className="text-xs font-black tracking-widest text-indigo-400">CINELINK</span>
+            <h2 className="text-xl font-bold text-white mt-2 mb-1">You're joining a watch party!</h2>
+            <p className="text-sm text-gray-400">Enter your name so others know who you are.</p>
+          </div>
+          <form onSubmit={handleNameSubmit} className="space-y-4">
+            <input
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              placeholder="Your name (e.g. Jeff, Charan…)"
+              maxLength={32}
+              autoFocus
+              className="w-full px-4 py-3 rounded-xl bg-surface border border-surface-border text-white placeholder-gray-500 focus:outline-none focus:border-primary text-sm"
+            />
+            <button
+              type="submit"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-primary to-primary-purple hover:from-primary-hover hover:to-primary text-white font-semibold text-sm transition"
+            >
+              {nameInput.trim() ? `Join as ${nameInput.trim()}` : 'Join as Guest'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
