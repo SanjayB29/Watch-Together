@@ -2,18 +2,28 @@
 
 import React, { useState, useEffect } from 'react';
 import { Room, Participant } from '@/types';
-import { Copy, Check, Users, Shield, Play, Loader2, Sparkles } from 'lucide-react';
+import { Copy, Check, Users, Shield, Play, Loader2, Sparkles, Monitor } from 'lucide-react';
 
 interface WaitingRoomProps {
   room: Room;
   selfParticipant: Participant;
   isHost: boolean;
   onStartWatching: () => void;
+  /** Called when the host clicks "Start Sharing Screen" — async so the caller
+   *  can run getDisplayMedia() and handle success/cancel. */
+  onStartScreenShare?: () => Promise<void>;
 }
 
-export function WaitingRoom({ room, selfParticipant, isHost, onStartWatching }: WaitingRoomProps) {
+export function WaitingRoom({
+  room,
+  selfParticipant,
+  isHost,
+  onStartWatching,
+  onStartScreenShare,
+}: WaitingRoomProps) {
   const [copied, setCopied] = useState(false);
   const [tunnelOrigin, setTunnelOrigin] = useState<string | null>(null);
+  const [sharingLoading, setSharingLoading] = useState(false);
 
   useEffect(() => {
     fetch('/api/tunnel-url')
@@ -33,21 +43,46 @@ export function WaitingRoom({ room, selfParticipant, isHost, onStartWatching }: 
     setTimeout(() => setCopied(false), 2500);
   };
 
+  const isScreenMode = room.mediaMode === 'screen';
+
+  const handleScreenShareClick = async () => {
+    if (!onStartScreenShare) return;
+    setSharingLoading(true);
+    try {
+      await onStartScreenShare();
+    } finally {
+      setSharingLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background bg-hero-glow flex flex-col items-center justify-center p-4">
       <div className="max-w-xl w-full bg-surface/90 border border-surface-border rounded-3xl p-6 sm:p-10 backdrop-blur-2xl shadow-2xl text-center space-y-8">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs text-primary-purple mb-4">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Room Ready & Waiting</span>
+            {isScreenMode ? (
+              <>
+                <Monitor className="w-3.5 h-3.5" />
+                <span>Screen Share Room</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Room Ready & Waiting</span>
+              </>
+            )}
           </div>
           <h1 className="text-3xl font-extrabold text-white mb-2">{room.roomName}</h1>
-          <p className="text-sm text-gray-400">Share the link or code with your friends before starting playback</p>
+          <p className="text-sm text-gray-400">
+            Share the link or code with your friends before starting
+          </p>
         </div>
 
         {/* Room Code Showcase Box */}
         <div className="p-6 rounded-2xl bg-cinema-card border border-cinema-border flex flex-col items-center justify-center space-y-4">
-          <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">Room Code</span>
+          <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+            Room Code
+          </span>
           <div className="text-4xl sm:text-5xl font-mono font-black tracking-[0.25em] text-white">
             {room.roomCode}
           </div>
@@ -85,7 +120,8 @@ export function WaitingRoom({ room, selfParticipant, isHost, onStartWatching }: 
                   <div className="flex items-center gap-3">
                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
                     <span className="text-sm font-medium text-white">
-                      {p.displayName} {isSelf && <span className="text-xs text-gray-400 font-normal">(You)</span>}
+                      {p.displayName}{' '}
+                      {isSelf && <span className="text-xs text-gray-400 font-normal">(You)</span>}
                     </span>
                   </div>
                   {isPartyHost ? (
@@ -104,17 +140,41 @@ export function WaitingRoom({ room, selfParticipant, isHost, onStartWatching }: 
         {/* Actions */}
         <div className="pt-2">
           {isHost ? (
-            <button
-              onClick={onStartWatching}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-primary to-primary-purple hover:from-primary-hover hover:to-primary text-white font-bold text-base flex items-center justify-center gap-2 shadow-xl shadow-primary/30 transition transform hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Play className="w-5 h-5 fill-white" />
-              <span>Start Watching Movie</span>
-            </button>
+            isScreenMode ? (
+              <button
+                onClick={handleScreenShareClick}
+                disabled={sharingLoading}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-primary to-primary-purple hover:from-primary-hover hover:to-primary text-white font-bold text-base flex items-center justify-center gap-2 shadow-xl shadow-primary/30 transition transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {sharingLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Waiting for screen picker…</span>
+                  </>
+                ) : (
+                  <>
+                    <Monitor className="w-5 h-5" />
+                    <span>Start Sharing Screen</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={onStartWatching}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-primary to-primary-purple hover:from-primary-hover hover:to-primary text-white font-bold text-base flex items-center justify-center gap-2 shadow-xl shadow-primary/30 transition transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Play className="w-5 h-5 fill-white" />
+                <span>Start Watching Movie</span>
+              </button>
+            )
           ) : (
             <div className="p-4 rounded-xl bg-surface/40 border border-surface-border flex items-center justify-center gap-3 text-sm text-gray-300">
               <Loader2 className="w-4 h-4 animate-spin text-primary" />
-              <span>Waiting for host to start playback...</span>
+              <span>
+                {isScreenMode
+                  ? 'Waiting for the host to start screen sharing…'
+                  : 'Waiting for host to start playback…'}
+              </span>
             </div>
           )}
         </div>

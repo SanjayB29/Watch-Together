@@ -9,7 +9,7 @@ import { ChatPanel } from '@/components/ChatPanel';
 import { HostWebRTCManager, ViewerWebRTCManager } from '@/lib/webrtc';
 import { PlaybackSyncEngine } from '@/lib/syncEngine';
 import { getActiveHostFile, loadHostFile, setActiveHostFile } from '@/lib/fileStore';
-import { Loader2, AlertTriangle, Shield, Copy, Check, Users, MessageSquare } from 'lucide-react';
+import { Loader2, AlertTriangle, Copy, Check, MessageSquare } from 'lucide-react';
 
 export default function RoomPage() {
   const params = useParams();
@@ -23,6 +23,7 @@ export default function RoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showChatHint, setShowChatHint] = useState(false);
   const [tunnelOrigin, setTunnelOrigin] = useState<string | null>(null);
 
   // Name prompt: shown to guests who land directly via link with no stored name.
@@ -37,6 +38,8 @@ export default function RoomPage() {
   const [duration, setDuration] = useState(0);
   // Sub-Task 6: true once the viewer's WebRTC stream is live; always true for host.
   const [streamReady, setStreamReady] = useState(false);
+  // Non-blocking warning shown in the player when screen audio is unavailable
+  const [screenShareWarning, setScreenShareWarning] = useState<string | null>(null);
 
   // Video element ref & manager refs
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -346,6 +349,13 @@ export default function RoomPage() {
 
       case 'START_WATCHING': {
         setRoom((prev) => (prev ? { ...prev, status: 'playing' } : prev));
+        // Viewers enter the player with chat collapsed; show a hint for 5s.
+        const isViewerSession = localStorage.getItem(`cinelink_role_${roomCode}`) !== 'host';
+        if (isViewerSession) {
+          setSidebarOpen(false);
+          setShowChatHint(true);
+          setTimeout(() => setShowChatHint(false), 5000);
+        }
         break;
       }
 
@@ -516,11 +526,11 @@ export default function RoomPage() {
     }
   };
 
-  // Effect to load the host file when room becomes playing.
+  // Effect to load the host file when room becomes playing (movie mode only).
   // Stores the file in a ref — the actual attach happens once the <video> mounts.
   useEffect(() => {
     const isCurrentHost = (selfParticipant?.role || localStorage.getItem(`cinelink_role_${roomCode}`)) === 'host';
-    if (room?.status === 'playing' && isCurrentHost) {
+    if (room?.status === 'playing' && isCurrentHost && room?.mediaMode !== 'screen') {
       loadHostFile().then((file) => {
         if (file) {
           console.log('[RoomPage] Host file loaded, storing for attachment:', file.name);
@@ -528,7 +538,7 @@ export default function RoomPage() {
         }
       });
     }
-  }, [room?.status, selfParticipant?.role, roomCode]);
+  }, [room?.status, selfParticipant?.role, roomCode, room?.mediaMode]);
 
   // Runs after every render — attaches pending host file or viewer stream as soon
   // as the <video> element is in the DOM. Cheap: guards prevent repeated work.
@@ -632,6 +642,82 @@ export default function RoomPage() {
     });
   };
 
+  /**
+   * Called when the host clicks "Start Sharing Screen" in the WaitingRoom.
+   * Requests getDisplayMedia(), validates tracks, pushes the stream to
+   * HostWebRTCManager, and signals START_WATCHING to the server.
+   * Throws if the user cancels — WaitingRoom handles it gracefully.
+   */
+  const handleStartScreenShare = async () => {
+    let stream: MediaStream;
+    try {
+      stream = await (navigator.mediaDevices as any).getDisplayMedia({
+        video: {
+          displaySurface: 'monitor',
+          frameRate: 30,
+        },
+        audio: true,
+      });
+    } catch (err: any) {
+      // User cancelled or permission denied — stay in waiting room silently
+      console.log('[ScreenShare] getDisplayMedia cancelled or denied:', err?.message);
+      return; // returning without throwing keeps the WaitingRoom visible
+    }
+
+    const videoTrack = stream.getVideoTracks()[0];
+    if (!videoTrack) {
+      setError('No video track returned from screen capture. Please try again.');
+      stream.getTracks().forEach((t) => t.stop());
+      return;
+    }
+
+    const audioTrack = stream.getAudioTracks()[0];
+    if (!audioTrack) {
+      // Non-fatal — warn the host but proceed
+      setScreenShareWarning(
+        "System audio wasn't shared. Please stop sharing and select \"Share audio\" when sharing your entire screen."
+      );
+    } else {
+      setScreenShareWarning(null);
+    }
+
+    console.log(
+      '[ScreenShare] Captured tracks:',
+      stream.getTracks().map((t) => `${t.kind}:${t.label}:${t.readyState}`)
+    );
+
+    // Attach the display stream to the host's own <video> preview element
+    if (videoRef.current) {
+      capturedStreamRef.current = stream;
+      videoRef.current.srcObject = stream;
+      videoRef.current.muted = true;
+      videoRef.current.play().catch(console.warn);
+      setStreamReady(true);
+    }
+
+    // Push to all connected peers
+    if (hostWebRTCRef.current) {
+      capturedStreamRef.current = stream;
+      await hostWebRTCRef.current.setLocalStream(stream);
+    }
+
+    // Listen for the native browser "Stop sharing" button
+    videoTrack.onended = () => {
+      console.log('[ScreenShare] Screen share track ended (user stopped sharing).');
+      setIsPlaying(false);
+      setStreamReady(false);
+      capturedStreamRef.current = null;
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      // Close the peer connections so viewers see "host disconnected"
+      hostWebRTCRef.current?.closeAll();
+    };
+
+    // Signal the server to flip room to 'playing' and notify all participants
+    sendWS({ type: 'START_WATCHING', roomCode });
+  };
+
   const handleSendMessage = (text: string) => {
     sendWS({
       type: 'CHAT_MESSAGE',
@@ -684,7 +770,7 @@ export default function RoomPage() {
         <div className="bg-surface/80 border border-surface-border rounded-2xl p-8 w-full max-w-sm backdrop-blur-xl shadow-2xl">
           <div className="text-center mb-6">
             <span className="text-xs font-black tracking-widest text-indigo-400">CINELINK</span>
-            <h2 className="text-xl font-bold text-white mt-2 mb-1">You're joining a watch party!</h2>
+            <h2 className="text-xl font-bold text-white mt-2 mb-1">You&apos;re joining a watch party!</h2>
             <p className="text-sm text-gray-400">Enter your name so others know who you are.</p>
           </div>
           <form onSubmit={handleNameSubmit} className="space-y-4">
@@ -744,6 +830,7 @@ export default function RoomPage() {
         selfParticipant={selfParticipant}
         isHost={isHost}
         onStartWatching={handleStartWatching}
+        onStartScreenShare={room.mediaMode === 'screen' ? handleStartScreenShare : undefined}
       />
     );
   }
@@ -775,15 +862,46 @@ export default function RoomPage() {
             <span>{copiedLink ? 'Copied' : 'Invite'}</span>
           </button>
 
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={`p-1.5 rounded transition ${
-              sidebarOpen ? 'bg-primary text-white' : 'bg-surface text-gray-300'
-            }`}
-            title="Toggle Chat & Participants"
-          >
-            <MessageSquare className="w-4 h-4" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => { setSidebarOpen(!sidebarOpen); setShowChatHint(false); }}
+              className={`p-1.5 rounded transition ${
+                sidebarOpen ? 'bg-primary text-white' : 'bg-surface text-gray-300'
+              }`}
+              title="Toggle Chat & Participants"
+            >
+              <MessageSquare className="w-4 h-4" />
+            </button>
+            {showChatHint && (
+              <div className="absolute right-0 top-9 z-50 w-52 rounded-xl bg-surface border border-surface-border shadow-2xl pointer-events-none overflow-hidden">
+                {/* Chat bubble header */}
+                <div className="flex items-center gap-2 bg-primary/20 border-b border-primary/30 px-3 py-2">
+                  <MessageSquare className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                  <span className="text-xs font-semibold text-white">Chat</span>
+                </div>
+                {/* Fake message row */}
+                <div className="px-3 py-2.5 flex items-start gap-2">
+                  <div className="w-5 h-5 rounded-full bg-indigo-500/30 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1 flex-1">
+                    <div className="h-2 w-16 rounded bg-gray-600/60" />
+                    <div className="h-2 w-28 rounded bg-gray-700/60" />
+                  </div>
+                </div>
+                {/* CTA row */}
+                <div className="border-t border-surface-border px-3 py-2 flex items-center justify-between">
+                  <span className="text-[11px] text-indigo-300 font-medium">Click here to chat</span>
+                  <div className="flex gap-0.5">
+                    <span className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1 h-1 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+                {/* Arrow pointing up-right toward the button */}
+                <span className="absolute -top-1.5 right-2.5 border-4 border-transparent border-b-surface-border" />
+                <span className="absolute -top-1 right-2.5 border-4 border-transparent border-b-surface" />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -801,9 +919,11 @@ export default function RoomPage() {
             onPlay={handlePlay}
             onPause={handlePause}
             onSeek={handleSeek}
-            movieMetadata={room.movieMetadata}
-            onReattachFile={handleHostReattachFile}
+            movieMetadata={room.mediaMode === 'movie' ? room.movieMetadata : undefined}
+            onReattachFile={room.mediaMode === 'movie' ? handleHostReattachFile : undefined}
             streamReady={isHost || streamReady}
+            mediaMode={room.mediaMode}
+            screenShareWarning={screenShareWarning}
           />
         </div>
 

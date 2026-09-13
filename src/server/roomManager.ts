@@ -1,4 +1,4 @@
-import { Room, Participant, PlaybackState, RoomSettings, MovieMetadata } from '../types';
+import { Room, Participant, PlaybackState, RoomSettings, MovieMetadata, RoomMediaMode, ScreenShareMetadata } from '../types';
 
 export class RoomManager {
   private rooms: Map<string, Room> = new Map(); // key: roomCode
@@ -11,7 +11,9 @@ export class RoomManager {
     hostName: string,
     roomName: string = 'Watch Party',
     settings: Partial<RoomSettings> = {},
-    movieMetadata?: MovieMetadata
+    movieMetadata?: MovieMetadata,
+    mediaMode: RoomMediaMode = 'movie',
+    screenShareMetadata?: ScreenShareMetadata
   ): Room {
     const fullSettings: RoomSettings = {
       hostOnlyControl: settings.hostOnlyControl ?? true,
@@ -44,7 +46,9 @@ export class RoomManager {
       lastActivityAt: Date.now(),
       playback,
       settings: fullSettings,
+      mediaMode,
       movieMetadata,
+      screenShareMetadata,
       status: 'waiting',
     };
 

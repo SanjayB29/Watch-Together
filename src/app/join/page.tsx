@@ -147,11 +147,15 @@ function JoinRoomForm() {
                   </span>
                 </div>
 
-                {preview.movieMetadata && (
+                {preview.mediaMode === 'screen' ? (
+                  <p className="text-xs text-indigo-300 flex items-center gap-1.5">
+                    🖥 <span>Screen Share Room</span>
+                  </p>
+                ) : preview.movieMetadata ? (
                   <p className="text-xs text-gray-400 truncate">
                     Streaming: <span className="text-gray-200">{preview.movieMetadata.name}</span>
                   </p>
-                )}
+                ) : null}
 
                 {preview.requiresPasscode && (
                   <div className="pt-2">

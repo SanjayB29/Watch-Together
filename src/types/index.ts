@@ -1,4 +1,5 @@
 export type ParticipantRole = 'host' | 'viewer';
+export type RoomMediaMode = 'movie' | 'screen';
 
 export interface Participant {
   id: string;
@@ -19,6 +20,10 @@ export interface RoomSettings {
   hostOnlyControl: boolean;
   passcode?: string;
   maxParticipants: number;
+}
+
+export interface ScreenShareMetadata {
+  label?: string; // e.g. "Screen Share"
 }
 
 export interface MovieMetadata {
@@ -43,7 +48,9 @@ export interface Room {
   lastActivityAt: number;
   playback: PlaybackState;
   settings: RoomSettings;
+  mediaMode: RoomMediaMode;
   movieMetadata?: MovieMetadata;
+  screenShareMetadata?: ScreenShareMetadata;
   status: 'waiting' | 'playing' | 'ended';
 }
 

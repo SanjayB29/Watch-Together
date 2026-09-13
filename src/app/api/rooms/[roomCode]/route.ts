@@ -24,7 +24,8 @@ export async function GET(req: NextRequest, { params }: { params: { roomCode: st
       isFull,
       requiresPasscode: !!room.settings.passcode,
       hostOnlyControl: room.settings.hostOnlyControl,
-      movieMetadata: room.movieMetadata,
+      mediaMode: room.mediaMode,
+      movieMetadata: room.mediaMode === 'movie' ? room.movieMetadata : undefined,
     },
   });
 }
