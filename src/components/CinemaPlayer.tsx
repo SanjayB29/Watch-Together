@@ -236,7 +236,7 @@ export function CinemaPlayer({
       {/* Embedded / Relay Subtitle Overlay */}
       {subtitleCueText && (
         <div className="absolute bottom-20 inset-x-0 flex justify-center pointer-events-none px-6 z-20">
-          <div className="bg-black/80 backdrop-blur-sm border border-white/10 px-4 py-1.5 rounded-lg text-white font-medium text-sm sm:text-base text-center shadow-2xl max-w-2xl leading-relaxed">
+          <div className="bg-black/75 backdrop-blur-md border border-white/20 px-4 py-2 rounded-2xl text-white font-semibold text-sm sm:text-base text-center shadow-2xl max-w-2xl leading-relaxed">
             {subtitleCueText}
           </div>
         </div>
@@ -244,7 +244,7 @@ export function CinemaPlayer({
 
       {/* Control Overlay */}
       <div
-        className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 flex flex-col justify-between p-4 sm:p-6 transition-opacity duration-300 z-10 ${
+        className={`absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60 flex flex-col justify-between p-4 sm:p-6 transition-opacity duration-300 z-10 ${
           controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -254,17 +254,17 @@ export function CinemaPlayer({
             {isScreenMode ? (
               <div className="flex items-center gap-2">
                 <Monitor className="w-4 h-4 text-indigo-400" />
-                <h2 className="text-sm sm:text-base font-semibold truncate max-w-xs sm:max-w-md">
+                <h2 className="text-sm sm:text-base font-bold text-white truncate max-w-xs sm:max-w-md drop-shadow">
                   Screen Share
                 </h2>
               </div>
             ) : (
               <>
-                <h2 className="text-sm sm:text-base font-semibold truncate max-w-xs sm:max-w-md">
+                <h2 className="text-sm sm:text-base font-bold text-white truncate max-w-xs sm:max-w-md drop-shadow">
                   {movieMetadata?.name || 'Watch Party Stream'}
                 </h2>
                 {movieMetadata?.videoCodec && (
-                  <span className="hidden sm:inline-block px-2 py-0.5 rounded bg-white/10 text-[10px] uppercase font-mono tracking-wider text-gray-300">
+                  <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-white/15 border border-white/10 text-[10px] uppercase font-mono tracking-wider text-slate-200">
                     {movieMetadata.videoCodec}
                   </span>
                 )}
@@ -274,11 +274,11 @@ export function CinemaPlayer({
 
           <div className="flex items-center gap-2">
             {!canControl && !isScreenMode && (
-              <span className="flex items-center gap-1 text-xs text-indigo-300 bg-indigo-500/20 px-2.5 py-1 rounded-full border border-indigo-500/30">
-                <Lock className="w-3 h-3" /> Host controls playback
+              <span className="flex items-center gap-1 text-xs font-semibold text-indigo-200 bg-indigo-500/30 px-3 py-1 rounded-full border border-indigo-400/40 backdrop-blur-md">
+                <Lock className="w-3 h-3 text-indigo-300" /> Host controls playback
               </span>
             )}
-            <span className="text-xs text-gray-400 bg-black/40 px-2 py-1 rounded backdrop-blur">
+            <span className="text-xs font-semibold text-slate-200 bg-black/50 border border-white/15 px-3 py-1 rounded-full backdrop-blur-md">
               {isHost
                 ? isScreenMode
                   ? 'Host Sharing 🖥'
@@ -372,7 +372,7 @@ export function CinemaPlayer({
               {!isScreenMode && isHost && onReattachFile && (
                 <button
                   onClick={() => filePickerRef.current?.click()}
-                  className="px-2.5 py-1 text-xs rounded bg-surface border border-surface-border text-gray-300 hover:text-white transition"
+                  className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition backdrop-blur-md shadow-sm"
                   title="Choose / Change Local Movie"
                 >
                   Select File
@@ -384,8 +384,8 @@ export function CinemaPlayer({
                 <div className="relative">
                   <button
                     onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-                    className={`p-2 rounded-lg transition ${
-                      showSettingsMenu ? 'bg-white/20 text-white' : 'text-gray-300 hover:text-white'
+                    className={`p-2 rounded-xl transition ${
+                      showSettingsMenu ? 'bg-white/20 text-white' : 'text-slate-300 hover:text-white hover:bg-white/10'
                     }`}
                     title="Audio & Subtitle Settings"
                   >
@@ -393,22 +393,22 @@ export function CinemaPlayer({
                   </button>
 
                   {showSettingsMenu && (
-                    <div className="absolute bottom-10 right-0 w-64 bg-surface border border-surface-border rounded-xl p-3 shadow-2xl space-y-3 z-30">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Tracks & Audio</h4>
+                    <div className="absolute bottom-12 right-0 w-64 glass-panel rounded-2xl p-3.5 shadow-2xl space-y-3 z-30">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Tracks & Audio</h4>
 
                       {/* Subtitle list */}
                       <div>
-                        <span className="text-xs text-gray-300 block mb-1">Subtitles:</span>
+                        <span className="text-xs text-slate-300 font-semibold block mb-1.5">Subtitles:</span>
                         <div className="space-y-1 max-h-32 overflow-y-auto">
                           <button
                             onClick={() => {
                               onSelectSubtitle?.('off');
                               setShowSettingsMenu(false);
                             }}
-                            className={`w-full text-left text-xs px-2.5 py-1.5 rounded-lg transition ${
+                            className={`w-full text-left text-xs px-3 py-2 rounded-xl transition font-medium ${
                               !selectedSubtitle || selectedSubtitle === 'off'
-                                ? 'bg-primary text-white font-semibold'
-                                : 'text-gray-400 hover:bg-surface-light'
+                                ? 'bg-indigo-600 text-white font-bold'
+                                : 'text-slate-300 hover:bg-white/10'
                             }`}
                           >
                             Off
@@ -420,10 +420,10 @@ export function CinemaPlayer({
                                 onSelectSubtitle?.(sub.id);
                                 setShowSettingsMenu(false);
                               }}
-                              className={`w-full text-left text-xs px-2.5 py-1.5 rounded-lg transition ${
+                              className={`w-full text-left text-xs px-3 py-2 rounded-xl transition font-medium ${
                                 selectedSubtitle === sub.id
-                                  ? 'bg-primary text-white font-semibold'
-                                  : 'text-gray-400 hover:bg-surface-light'
+                                  ? 'bg-indigo-600 text-white font-bold'
+                                  : 'text-slate-300 hover:bg-white/10'
                               }`}
                             >
                               {sub.label || `Track (${sub.language})`}
@@ -437,7 +437,7 @@ export function CinemaPlayer({
               )}
 
               {/* Fullscreen Toggle — shown in all modes */}
-              <button onClick={toggleFullscreen} className="text-gray-300 hover:text-white transition p-2">
+              <button onClick={toggleFullscreen} className="text-slate-300 hover:text-white transition p-2 hover:bg-white/10 rounded-xl">
                 {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
               </button>
             </div>
