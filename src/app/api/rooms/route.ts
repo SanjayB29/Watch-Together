@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { roomManager } from '@/server/roomManager';
-import { RoomSettings, MovieMetadata } from '@/types';
+import { RoomSettings, MovieMetadata, RoomMediaMode } from '@/types';
 
 // POST /api/rooms - Create a room
 export async function POST(req: NextRequest) {
@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
       roomName = 'Watch Party',
       settings = {} as Partial<RoomSettings>,
       movieMetadata = undefined as MovieMetadata | undefined,
+      mediaMode = 'movie' as RoomMediaMode,
     } = body;
 
     // Generate 6-char random alphanumeric room code
@@ -21,7 +22,18 @@ export async function POST(req: NextRequest) {
       roomCode += chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
-    const room = roomManager.createRoom(roomCode, hostId, hostName, roomName, settings, movieMetadata);
+    const screenShareMetadata = mediaMode === 'screen' ? { label: 'Screen Share' } : undefined;
+
+    const room = roomManager.createRoom(
+      roomCode,
+      hostId,
+      hostName,
+      roomName,
+      settings,
+      movieMetadata,
+      mediaMode,
+      screenShareMetadata
+    );
 
     return NextResponse.json({
       success: true,
