@@ -23,23 +23,23 @@ export default function FAQPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-background bg-hero-glow py-12 px-4">
+    <main className="min-h-screen py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition mb-8">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-200 hover:text-white transition font-medium drop-shadow-sm mb-8">
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Home</span>
         </Link>
 
-        <h1 className="text-3xl font-extrabold text-white mb-8 flex items-center gap-3">
-          <HelpCircle className="w-8 h-8 text-primary" />
+        <h1 className="text-3xl font-extrabold text-white mb-8 flex items-center gap-3 drop-shadow-md">
+          <HelpCircle className="w-8 h-8 text-indigo-400" />
           Frequently Asked Questions
         </h1>
 
         <div className="space-y-4">
           {faqs.map((faq, i) => (
-            <div key={i} className="p-6 rounded-2xl bg-surface/80 border border-surface-border">
-              <h3 className="text-base font-semibold text-white mb-2">{faq.q}</h3>
-              <p className="text-sm text-gray-400 leading-relaxed">{faq.a}</p>
+            <div key={i} className="p-6 rounded-3xl glass-panel">
+              <h3 className="text-base font-bold text-white mb-2">{faq.q}</h3>
+              <p className="text-sm text-slate-300 leading-relaxed font-normal">{faq.a}</p>
             </div>
           ))}
         </div>

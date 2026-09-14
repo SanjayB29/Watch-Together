@@ -159,27 +159,27 @@ export default function CreateRoomPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background bg-hero-glow py-10 px-4">
+    <main className="min-h-screen py-10 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Back header */}
         <div className="flex items-center justify-between mb-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition"
+            className="inline-flex items-center gap-2 text-sm text-slate-200 hover:text-white transition font-medium drop-shadow-sm"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Home</span>
           </Link>
-          <div className="flex items-center gap-2 text-xs text-indigo-400 bg-surface px-3 py-1 rounded-full border border-surface-border">
-            <ShieldCheck className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-2 text-xs font-semibold text-indigo-300 bg-black/40 px-3.5 py-1.5 rounded-full border border-white/15 backdrop-blur-md shadow-md">
+            <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
             <span>Local streaming</span>
           </div>
         </div>
 
-        <div className="bg-surface/80 border border-surface-border rounded-2xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
+        <div className="glass-panel rounded-3xl p-6 sm:p-8">
           <div className="mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Create a Watch Room</h1>
-            <p className="text-sm text-gray-400">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 drop-shadow-sm">Create a Watch Room</h1>
+            <p className="text-sm text-slate-300 font-normal">
               Choose what you want to share, then configure your room.
             </p>
           </div>
@@ -187,7 +187,7 @@ export default function CreateRoomPage() {
           <form onSubmit={handleCreateRoom} className="space-y-6">
             {/* ── Media Mode Selector ── */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
                 What do you want to share?
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -195,30 +195,30 @@ export default function CreateRoomPage() {
                 <button
                   type="button"
                   onClick={() => handleModeChange('movie')}
-                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`relative p-4 rounded-2xl border-2 text-left transition-all ${
                     mediaMode === 'movie'
-                      ? 'border-primary bg-primary/10'
-                      : 'border-surface-border bg-surface/40 hover:border-gray-500'
+                      ? 'border-indigo-400 bg-indigo-500/20 shadow-lg shadow-indigo-500/10'
+                      : 'border-white/10 bg-black/30 hover:border-white/20 hover:bg-black/40'
                   }`}
                 >
                   {mediaMode === 'movie' && (
-                    <span className="absolute top-3 right-3">
-                      <Check className="w-4 h-4 text-primary" />
+                    <span className="absolute top-3 right-3 bg-indigo-500/30 p-1 rounded-full border border-indigo-400/40">
+                      <Check className="w-3.5 h-3.5 text-indigo-300" />
                     </span>
                   )}
                   <div className="flex items-center gap-3 mb-2">
                     <div
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center ${
                         mediaMode === 'movie'
-                          ? 'bg-primary/20 text-primary'
-                          : 'bg-surface-light text-gray-400'
+                          ? 'bg-indigo-500/30 text-indigo-200 border border-indigo-400/30'
+                          : 'bg-white/10 text-slate-300'
                       }`}
                     >
                       <Film className="w-5 h-5" />
                     </div>
-                    <span className="text-sm font-semibold text-white">🎬 Movie</span>
+                    <span className="text-sm font-bold text-white">🎬 Movie</span>
                   </div>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-slate-300 leading-relaxed font-normal">
                     Share a local video file with everyone in the room.
                   </p>
                 </button>
@@ -227,40 +227,40 @@ export default function CreateRoomPage() {
                 <button
                   type="button"
                   onClick={() => handleModeChange('screen')}
-                  className={`relative p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`relative p-4 rounded-2xl border-2 text-left transition-all ${
                     mediaMode === 'screen'
-                      ? 'border-primary bg-primary/10'
-                      : 'border-surface-border bg-surface/40 hover:border-gray-500'
+                      ? 'border-indigo-400 bg-indigo-500/20 shadow-lg shadow-indigo-500/10'
+                      : 'border-white/10 bg-black/30 hover:border-white/20 hover:bg-black/40'
                   }`}
                 >
                   {mediaMode === 'screen' && (
-                    <span className="absolute top-3 right-3">
-                      <Check className="w-4 h-4 text-primary" />
+                    <span className="absolute top-3 right-3 bg-indigo-500/30 p-1 rounded-full border border-indigo-400/40">
+                      <Check className="w-3.5 h-3.5 text-indigo-300" />
                     </span>
                   )}
                   <div className="flex items-center gap-3 mb-2">
                     <div
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center ${
                         mediaMode === 'screen'
-                          ? 'bg-primary/20 text-primary'
-                          : 'bg-surface-light text-gray-400'
+                          ? 'bg-indigo-500/30 text-indigo-200 border border-indigo-400/30'
+                          : 'bg-white/10 text-slate-300'
                       }`}
                     >
                       <Monitor className="w-5 h-5" />
                     </div>
-                    <span className="text-sm font-semibold text-white">🖥 Full Screen + Audio</span>
+                    <span className="text-sm font-bold text-white">🖥 Full Screen + Audio</span>
                   </div>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-slate-300 leading-relaxed font-normal">
                     Share your entire screen and system audio with everyone in the room.
                   </p>
                 </button>
               </div>
 
-              {/* Screen mode notice — no permission prompt here */}
+              {/* Screen mode notice */}
               {mediaMode === 'screen' && (
-                <p className="mt-3 text-xs text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-3 py-2">
+                <p className="mt-3 text-xs text-indigo-200 bg-indigo-950/50 border border-indigo-400/30 rounded-xl px-3.5 py-2.5 backdrop-blur-md">
                   You&apos;ll be asked to pick a screen after entering the waiting room, when you click{' '}
-                  <strong>Start Sharing Screen</strong>. No permission is requested now.
+                  <strong className="text-white">Start Sharing Screen</strong>. No permission is requested now.
                 </p>
               )}
             </div>
@@ -268,7 +268,7 @@ export default function CreateRoomPage() {
             {/* ── File Dropzone (movie mode only) ── */}
             {mediaMode === 'movie' && (
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
                   Movie File (MKV, MP4, WebM, MOV)
                 </label>
 
@@ -285,32 +285,32 @@ export default function CreateRoomPage() {
                     onClick={() => fileInputRef.current?.click()}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={handleDrop}
-                    className="border-2 border-dashed border-surface-border hover:border-primary/60 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition bg-surface/40 hover:bg-surface-light/40 group text-center"
+                    className="border-2 border-dashed border-white/20 hover:border-indigo-400/60 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition bg-black/30 hover:bg-black/40 group text-center backdrop-blur-md"
                   >
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3 group-hover:scale-110 transition-transform">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 mb-3 group-hover:scale-110 transition-transform shadow-inner">
                       <UploadCloud className="w-6 h-6" />
                     </div>
-                    <p className="text-sm font-medium text-white mb-1">
+                    <p className="text-sm font-semibold text-white mb-1">
                       Click to browse or drop movie file here
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-slate-400">
                       MKV (H.264/AAC direct play), MP4, WebM • Up to 4K
                     </p>
                   </div>
                 ) : (
-                  <div className="p-4 rounded-xl bg-cinema-card border border-cinema-border flex items-start justify-between">
+                  <div className="p-4 rounded-2xl bg-black/40 border border-white/15 flex items-start justify-between backdrop-blur-md">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-primary mt-0.5">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 mt-0.5">
                         <Film className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-white truncate max-w-sm sm:max-w-md">
+                        <p className="text-sm font-bold text-white truncate max-w-sm sm:max-w-md">
                           {file.name}
                         </p>
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400 mt-1">
-                          <span>{formatFileSize(file.size)}</span>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300 mt-1">
+                          <span className="font-medium text-indigo-300">{formatFileSize(file.size)}</span>
                           {analyzing ? (
-                            <span className="flex items-center gap-1 text-primary">
+                            <span className="flex items-center gap-1 text-indigo-300">
                               <Loader2 className="w-3 h-3 animate-spin" /> Analyzing container...
                             </span>
                           ) : metadata ? (
@@ -336,7 +336,7 @@ export default function CreateRoomPage() {
                         setMetadata(null);
                         setActiveHostFile(null);
                       }}
-                      className="text-xs text-gray-400 hover:text-red-400 transition ml-2"
+                      className="text-xs font-medium text-slate-400 hover:text-red-300 transition ml-2"
                     >
                       Change
                     </button>
@@ -348,7 +348,7 @@ export default function CreateRoomPage() {
             {/* ── Host Name & Room Title ── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5">
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
                   Your Display Name
                 </label>
                 <input
@@ -356,12 +356,12 @@ export default function CreateRoomPage() {
                   value={hostName}
                   onChange={(e) => setHostName(e.target.value)}
                   placeholder="e.g. Sanjay (Host)"
-                  className="w-full px-4 py-2.5 rounded-lg bg-surface border border-surface-border text-white placeholder-gray-500 focus:outline-none focus:border-primary text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl glass-input placeholder-slate-400 focus:outline-none text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5">
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
                   Room Title
                 </label>
                 <input
@@ -371,25 +371,25 @@ export default function CreateRoomPage() {
                   placeholder={
                     mediaMode === 'screen' ? 'e.g. Screen Share' : 'e.g. Interstellar Watch Party'
                   }
-                  className="w-full px-4 py-2.5 rounded-lg bg-surface border border-surface-border text-white placeholder-gray-500 focus:outline-none focus:border-primary text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl glass-input placeholder-slate-400 focus:outline-none text-sm"
                 />
               </div>
             </div>
 
             {/* ── Permissions & Security Settings ── */}
-            <div className="p-4 rounded-xl bg-surface/50 border border-surface-border space-y-3">
+            <div className="p-4 rounded-2xl bg-black/30 border border-white/10 space-y-3 backdrop-blur-md">
               <label className="flex items-center gap-3 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={hostOnlyControl}
                   onChange={(e) => setHostOnlyControl(e.target.checked)}
-                  className="w-4 h-4 rounded text-primary border-gray-700 bg-surface focus:ring-0"
+                  className="w-4 h-4 rounded text-indigo-500 border-white/20 bg-black/50 focus:ring-0"
                 />
                 <div>
-                  <span className="text-sm font-medium text-white block">
+                  <span className="text-sm font-semibold text-white block">
                     Only host can control playback
                   </span>
-                  <span className="text-xs text-gray-400 block">
+                  <span className="text-xs text-slate-300 block">
                     Prevents guests from pausing or seeking without your input
                   </span>
                 </div>
@@ -400,11 +400,11 @@ export default function CreateRoomPage() {
                   type="checkbox"
                   checked={requirePasscode}
                   onChange={(e) => setRequirePasscode(e.target.checked)}
-                  className="w-4 h-4 rounded text-primary border-gray-700 bg-surface focus:ring-0"
+                  className="w-4 h-4 rounded text-indigo-500 border-white/20 bg-black/50 focus:ring-0"
                 />
                 <div>
-                  <span className="text-sm font-medium text-white block">Require room passcode</span>
-                  <span className="text-xs text-gray-400 block">
+                  <span className="text-sm font-semibold text-white block">Require room passcode</span>
+                  <span className="text-xs text-slate-300 block">
                     Guests must enter a password to join
                   </span>
                 </div>
@@ -417,14 +417,14 @@ export default function CreateRoomPage() {
                     value={passcode}
                     onChange={(e) => setPasscode(e.target.value)}
                     placeholder="Enter room password"
-                    className="w-full px-4 py-2 rounded-lg bg-surface border border-surface-border text-white placeholder-gray-500 focus:outline-none focus:border-primary text-sm"
+                    className="w-full px-4 py-2 rounded-xl glass-input placeholder-slate-400 focus:outline-none text-sm"
                   />
                 </div>
               )}
             </div>
 
             {error && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+              <div className="p-3.5 rounded-xl bg-red-950/60 border border-red-500/30 text-red-200 text-xs font-medium backdrop-blur-md">
                 {error}
               </div>
             )}
@@ -433,7 +433,7 @@ export default function CreateRoomPage() {
             <button
               type="submit"
               disabled={creating || analyzing || (mediaMode === 'movie' && !file)}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-primary to-primary-purple hover:from-primary-hover hover:to-primary text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold flex items-center justify-center gap-2 shadow-xl shadow-indigo-600/30 ring-1 ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               {creating ? (
                 <>
