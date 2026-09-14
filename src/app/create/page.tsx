@@ -3,19 +3,35 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Film, UploadCloud, CheckCircle2, Lock, ShieldCheck, ArrowLeft, Loader2, Play } from 'lucide-react';
+import {
+  Film,
+  UploadCloud,
+  CheckCircle2,
+  Lock,
+  ShieldCheck,
+  ArrowLeft,
+  Loader2,
+  Play,
+  Monitor,
+  Check,
+} from 'lucide-react';
 import { inspectMediaFile } from '@/lib/mediaInspector';
-import { MovieMetadata } from '@/types';
-
+import { MovieMetadata, RoomMediaMode } from '@/types';
 import { setActiveHostFile } from '@/lib/fileStore';
 
 export default function CreateRoomPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Media mode ────────────────────────────────────────────────────────────
+  const [mediaMode, setMediaMode] = useState<RoomMediaMode>('movie');
+
+  // ── Movie-mode state ──────────────────────────────────────────────────────
   const [file, setFile] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [metadata, setMetadata] = useState<MovieMetadata | null>(null);
+
+  // ── Common form state ─────────────────────────────────────────────────────
   const [hostName, setHostName] = useState('');
   const [roomName, setRoomName] = useState('');
   const [hostOnlyControl, setHostOnlyControl] = useState(true);
@@ -24,6 +40,7 @@ export default function CreateRoomPage() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ── File handling (movie mode only) ───────────────────────────────────────
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (!selected) return;
@@ -47,7 +64,6 @@ export default function CreateRoomPage() {
       const meta = await inspectMediaFile(selectedFile);
       setMetadata(meta);
       if (!roomName) {
-        // Clean name without extension
         const cleanName = selectedFile.name.replace(/\.[^/.]+$/, '');
         setRoomName(`${cleanName} Watch Party`);
       }
@@ -73,9 +89,27 @@ export default function CreateRoomPage() {
     return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
   };
 
+  // ── Mode switch ───────────────────────────────────────────────────────────
+  const handleModeChange = (mode: RoomMediaMode) => {
+    setMediaMode(mode);
+    setError(null);
+    if (mode === 'screen') {
+      // Reset movie state and set a sensible default name if empty
+      setFile(null);
+      setMetadata(null);
+      setActiveHostFile(null);
+      if (!roomName) setRoomName('Screen Share');
+    } else {
+      // Clear the screen-default name only if user hasn't customised it
+      if (roomName === 'Screen Share') setRoomName('');
+    }
+  };
+
+  // ── Submit ────────────────────────────────────────────────────────────────
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) {
+
+    if (mediaMode === 'movie' && !file) {
       setError('Please select a movie file from your device first.');
       return;
     }
@@ -89,17 +123,19 @@ export default function CreateRoomPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           hostName: hostName.trim() || 'Host',
-          roomName: roomName.trim() || `${file.name} Party`,
+          roomName:
+            roomName.trim() ||
+            (mediaMode === 'screen' ? 'Screen Share' : `${file?.name ?? 'Watch'} Party`),
           settings: {
             hostOnlyControl,
             passcode: requirePasscode ? passcode : undefined,
             maxParticipants: 5,
           },
-          movieMetadata: metadata || {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-          },
+          mediaMode,
+          movieMetadata:
+            mediaMode === 'movie'
+              ? metadata || { name: file!.name, size: file!.size, type: file!.type }
+              : undefined,
         }),
       });
 
@@ -108,7 +144,7 @@ export default function CreateRoomPage() {
         throw new Error(data.error || 'Failed to create room');
       }
 
-      // Store host credentials in localStorage for room session
+      // Store host credentials for the room session
       if (typeof window !== 'undefined') {
         localStorage.setItem(`cinelink_role_${data.roomCode}`, 'host');
         localStorage.setItem(`cinelink_name_${data.roomCode}`, hostName.trim() || 'Host');
@@ -123,135 +159,239 @@ export default function CreateRoomPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background bg-hero-glow py-10 px-4">
+    <main className="min-h-screen py-10 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Back header */}
         <div className="flex items-center justify-between mb-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition"
+            className="inline-flex items-center gap-2 text-sm text-slate-200 hover:text-white transition font-medium drop-shadow-sm"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Home</span>
           </Link>
-          <div className="flex items-center gap-2 text-xs text-indigo-400 bg-surface px-3 py-1 rounded-full border border-surface-border">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Local file streaming</span>
+          <div className="flex items-center gap-2 text-xs font-semibold text-indigo-300 bg-black/40 px-3.5 py-1.5 rounded-full border border-white/15 backdrop-blur-md shadow-md">
+            <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Local streaming</span>
           </div>
         </div>
 
-        <div className="bg-surface/80 border border-surface-border rounded-2xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
+        <div className="glass-panel rounded-3xl p-6 sm:p-8">
           <div className="mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Create a Watch Room</h1>
-            <p className="text-sm text-gray-400">
-              Select a movie on your computer. Your browser will stream it directly to your guests without uploading to any server.
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 drop-shadow-sm">Create a Watch Room</h1>
+            <p className="text-sm text-slate-300 font-normal">
+              Choose what you want to share, then configure your room.
             </p>
           </div>
 
           <form onSubmit={handleCreateRoom} className="space-y-6">
-            {/* File Dropzone */}
+            {/* ── Media Mode Selector ── */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                Movie File (MKV, MP4, WebM, MOV)
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
+                What do you want to share?
               </label>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="video/*,.mkv,.mp4,.webm,.mov"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-
-              {!file ? (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={handleDrop}
-                  className="border-2 border-dashed border-surface-border hover:border-primary/60 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition bg-surface/40 hover:bg-surface-light/40 group text-center"
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Movie option */}
+                <button
+                  type="button"
+                  onClick={() => handleModeChange('movie')}
+                  className={`relative p-4 rounded-2xl border-2 text-left transition-all ${
+                    mediaMode === 'movie'
+                      ? 'border-indigo-400 bg-indigo-500/20 shadow-lg shadow-indigo-500/10'
+                      : 'border-white/10 bg-black/30 hover:border-white/20 hover:bg-black/40'
+                  }`}
                 >
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3 group-hover:scale-110 transition-transform">
-                    <UploadCloud className="w-6 h-6" />
-                  </div>
-                  <p className="text-sm font-medium text-white mb-1">Click to browse or drop movie file here</p>
-                  <p className="text-xs text-gray-500">MKV (H.264/AAC direct play), MP4, WebM • Up to 4K</p>
-                </div>
-              ) : (
-                <div className="p-4 rounded-xl bg-cinema-card border border-cinema-border flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-primary mt-0.5">
+                  {mediaMode === 'movie' && (
+                    <span className="absolute top-3 right-3 bg-indigo-500/30 p-1 rounded-full border border-indigo-400/40">
+                      <Check className="w-3.5 h-3.5 text-indigo-300" />
+                    </span>
+                  )}
+                  <div className="flex items-center gap-3 mb-2">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                        mediaMode === 'movie'
+                          ? 'bg-indigo-500/30 text-indigo-200 border border-indigo-400/30'
+                          : 'bg-white/10 text-slate-300'
+                      }`}
+                    >
                       <Film className="w-5 h-5" />
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-white truncate max-w-sm sm:max-w-md">{file.name}</p>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400 mt-1">
-                        <span>{formatFileSize(file.size)}</span>
-                        {analyzing ? (
-                          <span className="flex items-center gap-1 text-primary">
-                            <Loader2 className="w-3 h-3 animate-spin" /> Analyzing container...
-                          </span>
-                        ) : metadata ? (
-                          <>
-                            <span>• {metadata.videoCodec || 'Video'}</span>
-                            {metadata.duration && <span>• {formatDuration(metadata.duration)}</span>}
-                            {metadata.resolution && <span>• {metadata.resolution.width}x{metadata.resolution.height}</span>}
-                          </>
-                        ) : null}
-                      </div>
-                    </div>
+                    <span className="text-sm font-bold text-white">🎬 Movie</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFile(null);
-                      setMetadata(null);
-                      setActiveHostFile(null);
-                    }}
-                    className="text-xs text-gray-400 hover:text-red-400 transition ml-2"
-                  >
-                    Change
-                  </button>
-                </div>
+                  <p className="text-xs text-slate-300 leading-relaxed font-normal">
+                    Share a local video file with everyone in the room.
+                  </p>
+                </button>
+
+                {/* Screen share option */}
+                <button
+                  type="button"
+                  onClick={() => handleModeChange('screen')}
+                  className={`relative p-4 rounded-2xl border-2 text-left transition-all ${
+                    mediaMode === 'screen'
+                      ? 'border-indigo-400 bg-indigo-500/20 shadow-lg shadow-indigo-500/10'
+                      : 'border-white/10 bg-black/30 hover:border-white/20 hover:bg-black/40'
+                  }`}
+                >
+                  {mediaMode === 'screen' && (
+                    <span className="absolute top-3 right-3 bg-indigo-500/30 p-1 rounded-full border border-indigo-400/40">
+                      <Check className="w-3.5 h-3.5 text-indigo-300" />
+                    </span>
+                  )}
+                  <div className="flex items-center gap-3 mb-2">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                        mediaMode === 'screen'
+                          ? 'bg-indigo-500/30 text-indigo-200 border border-indigo-400/30'
+                          : 'bg-white/10 text-slate-300'
+                      }`}
+                    >
+                      <Monitor className="w-5 h-5" />
+                    </div>
+                    <span className="text-sm font-bold text-white">🖥 Full Screen + Audio</span>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed font-normal">
+                    Share your entire screen and system audio with everyone in the room.
+                  </p>
+                </button>
+              </div>
+
+              {/* Screen mode notice */}
+              {mediaMode === 'screen' && (
+                <p className="mt-3 text-xs text-indigo-200 bg-indigo-950/50 border border-indigo-400/30 rounded-xl px-3.5 py-2.5 backdrop-blur-md">
+                  You&apos;ll be asked to pick a screen after entering the waiting room, when you click{' '}
+                  <strong className="text-white">Start Sharing Screen</strong>. No permission is requested now.
+                </p>
               )}
             </div>
 
-            {/* Host Name & Room Title */}
+            {/* ── File Dropzone (movie mode only) ── */}
+            {mediaMode === 'movie' && (
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+                  Movie File (MKV, MP4, WebM, MOV)
+                </label>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="video/*,.mkv,.mp4,.webm,.mov"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+
+                {!file ? (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={handleDrop}
+                    className="border-2 border-dashed border-white/20 hover:border-indigo-400/60 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition bg-black/30 hover:bg-black/40 group text-center backdrop-blur-md"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 mb-3 group-hover:scale-110 transition-transform shadow-inner">
+                      <UploadCloud className="w-6 h-6" />
+                    </div>
+                    <p className="text-sm font-semibold text-white mb-1">
+                      Click to browse or drop movie file here
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      MKV (H.264/AAC direct play), MP4, WebM • Up to 4K
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-black/40 border border-white/15 flex items-start justify-between backdrop-blur-md">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 mt-0.5">
+                        <Film className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white truncate max-w-sm sm:max-w-md">
+                          {file.name}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300 mt-1">
+                          <span className="font-medium text-indigo-300">{formatFileSize(file.size)}</span>
+                          {analyzing ? (
+                            <span className="flex items-center gap-1 text-indigo-300">
+                              <Loader2 className="w-3 h-3 animate-spin" /> Analyzing container...
+                            </span>
+                          ) : metadata ? (
+                            <>
+                              <span>• {metadata.videoCodec || 'Video'}</span>
+                              {metadata.duration && (
+                                <span>• {formatDuration(metadata.duration)}</span>
+                              )}
+                              {metadata.resolution && (
+                                <span>
+                                  • {metadata.resolution.width}x{metadata.resolution.height}
+                                </span>
+                              )}
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFile(null);
+                        setMetadata(null);
+                        setActiveHostFile(null);
+                      }}
+                      className="text-xs font-medium text-slate-400 hover:text-red-300 transition ml-2"
+                    >
+                      Change
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Host Name & Room Title ── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5">Your Display Name</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  Your Display Name
+                </label>
                 <input
                   type="text"
                   value={hostName}
                   onChange={(e) => setHostName(e.target.value)}
                   placeholder="e.g. Sanjay (Host)"
-                  className="w-full px-4 py-2.5 rounded-lg bg-surface border border-surface-border text-white placeholder-gray-500 focus:outline-none focus:border-primary text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl glass-input placeholder-slate-400 focus:outline-none text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5">Room Title</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  Room Title
+                </label>
                 <input
                   type="text"
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
-                  placeholder="e.g. Interstellar Watch Party"
-                  className="w-full px-4 py-2.5 rounded-lg bg-surface border border-surface-border text-white placeholder-gray-500 focus:outline-none focus:border-primary text-sm"
+                  placeholder={
+                    mediaMode === 'screen' ? 'e.g. Screen Share' : 'e.g. Interstellar Watch Party'
+                  }
+                  className="w-full px-4 py-2.5 rounded-xl glass-input placeholder-slate-400 focus:outline-none text-sm"
                 />
               </div>
             </div>
 
-            {/* Permissions & Security Settings */}
-            <div className="p-4 rounded-xl bg-surface/50 border border-surface-border space-y-3">
+            {/* ── Permissions & Security Settings ── */}
+            <div className="p-4 rounded-2xl bg-black/30 border border-white/10 space-y-3 backdrop-blur-md">
               <label className="flex items-center gap-3 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={hostOnlyControl}
                   onChange={(e) => setHostOnlyControl(e.target.checked)}
-                  className="w-4 h-4 rounded text-primary border-gray-700 bg-surface focus:ring-0"
+                  className="w-4 h-4 rounded text-indigo-500 border-white/20 bg-black/50 focus:ring-0"
                 />
                 <div>
-                  <span className="text-sm font-medium text-white block">Only host can control playback</span>
-                  <span className="text-xs text-gray-400 block">Prevents guests from pausing or seeking without your input</span>
+                  <span className="text-sm font-semibold text-white block">
+                    Only host can control playback
+                  </span>
+                  <span className="text-xs text-slate-300 block">
+                    Prevents guests from pausing or seeking without your input
+                  </span>
                 </div>
               </label>
 
@@ -260,11 +400,13 @@ export default function CreateRoomPage() {
                   type="checkbox"
                   checked={requirePasscode}
                   onChange={(e) => setRequirePasscode(e.target.checked)}
-                  className="w-4 h-4 rounded text-primary border-gray-700 bg-surface focus:ring-0"
+                  className="w-4 h-4 rounded text-indigo-500 border-white/20 bg-black/50 focus:ring-0"
                 />
                 <div>
-                  <span className="text-sm font-medium text-white block">Require room passcode</span>
-                  <span className="text-xs text-gray-400 block">Guests must enter a password to join</span>
+                  <span className="text-sm font-semibold text-white block">Require room passcode</span>
+                  <span className="text-xs text-slate-300 block">
+                    Guests must enter a password to join
+                  </span>
                 </div>
               </label>
 
@@ -275,28 +417,33 @@ export default function CreateRoomPage() {
                     value={passcode}
                     onChange={(e) => setPasscode(e.target.value)}
                     placeholder="Enter room password"
-                    className="w-full px-4 py-2 rounded-lg bg-surface border border-surface-border text-white placeholder-gray-500 focus:outline-none focus:border-primary text-sm"
+                    className="w-full px-4 py-2 rounded-xl glass-input placeholder-slate-400 focus:outline-none text-sm"
                   />
                 </div>
               )}
             </div>
 
             {error && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+              <div className="p-3.5 rounded-xl bg-red-950/60 border border-red-500/30 text-red-200 text-xs font-medium backdrop-blur-md">
                 {error}
               </div>
             )}
 
-            {/* Create CTA Button */}
+            {/* ── Create CTA ── */}
             <button
               type="submit"
-              disabled={creating || analyzing || !file}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-primary to-primary-purple hover:from-primary-hover hover:to-primary text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              disabled={creating || analyzing || (mediaMode === 'movie' && !file)}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold flex items-center justify-center gap-2 shadow-xl shadow-indigo-600/30 ring-1 ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               {creating ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Creating Room...</span>
+                </>
+              ) : mediaMode === 'screen' ? (
+                <>
+                  <Monitor className="w-4 h-4" />
+                  <span>Create Room & Get Link</span>
                 </>
               ) : (
                 <>

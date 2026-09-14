@@ -14,8 +14,10 @@ import {
   Settings,
   Sparkles,
   Lock,
+  Monitor,
+  AlertTriangle,
 } from 'lucide-react';
-import { MovieMetadata } from '@/types';
+import { MovieMetadata, RoomMediaMode } from '@/types';
 
 interface CinemaPlayerProps {
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -36,6 +38,10 @@ interface CinemaPlayerProps {
   onReattachFile?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   /** Sub-Task 6: false while the viewer is waiting for the host's stream to arrive */
   streamReady?: boolean;
+  /** Controls which controls are rendered and what labels to show */
+  mediaMode?: RoomMediaMode;
+  /** Non-fatal warning to display when system audio was not captured */
+  screenShareWarning?: string | null;
 }
 
 export function CinemaPlayer({
@@ -56,7 +62,10 @@ export function CinemaPlayer({
   subtitleCueText,
   onReattachFile,
   streamReady = true,
+  mediaMode = 'movie',
+  screenShareWarning,
 }: CinemaPlayerProps) {
+  const isScreenMode = mediaMode === 'screen';
   const filePickerRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -184,7 +193,19 @@ export function CinemaPlayer({
       {!isHost && !streamReady && (
         <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-black/70 backdrop-blur-sm pointer-events-none">
           <div className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-          <p className="text-sm text-gray-300 font-medium">Waiting for host to start streaming…</p>
+          <p className="text-sm text-gray-300 font-medium">
+            {isScreenMode
+              ? 'Waiting for host to start screen sharing…'
+              : 'Waiting for host to start streaming…'}
+          </p>
+        </div>
+      )}
+
+      {/* Screen-share audio warning banner */}
+      {isScreenMode && screenShareWarning && (
+        <div className="absolute top-14 inset-x-4 z-30 flex items-start gap-2 bg-amber-500/20 border border-amber-500/40 rounded-lg px-3 py-2 pointer-events-none">
+          <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-300 leading-relaxed">{screenShareWarning}</p>
         </div>
       )}
 
@@ -215,7 +236,7 @@ export function CinemaPlayer({
       {/* Embedded / Relay Subtitle Overlay */}
       {subtitleCueText && (
         <div className="absolute bottom-20 inset-x-0 flex justify-center pointer-events-none px-6 z-20">
-          <div className="bg-black/80 backdrop-blur-sm border border-white/10 px-4 py-1.5 rounded-lg text-white font-medium text-sm sm:text-base text-center shadow-2xl max-w-2xl leading-relaxed">
+          <div className="bg-black/75 backdrop-blur-md border border-white/20 px-4 py-2 rounded-2xl text-white font-semibold text-sm sm:text-base text-center shadow-2xl max-w-2xl leading-relaxed">
             {subtitleCueText}
           </div>
         </div>
@@ -223,71 +244,92 @@ export function CinemaPlayer({
 
       {/* Control Overlay */}
       <div
-        className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 flex flex-col justify-between p-4 sm:p-6 transition-opacity duration-300 z-10 ${
+        className={`absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60 flex flex-col justify-between p-4 sm:p-6 transition-opacity duration-300 z-10 ${
           controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
         {/* Top Info Bar */}
         <div className="flex items-center justify-between text-white">
           <div className="flex items-center gap-3">
-            <h2 className="text-sm sm:text-base font-semibold truncate max-w-xs sm:max-w-md">
-              {movieMetadata?.name || 'Watch Party Stream'}
-            </h2>
-            {movieMetadata?.videoCodec && (
-              <span className="hidden sm:inline-block px-2 py-0.5 rounded bg-white/10 text-[10px] uppercase font-mono tracking-wider text-gray-300">
-                {movieMetadata.videoCodec}
-              </span>
+            {isScreenMode ? (
+              <div className="flex items-center gap-2">
+                <Monitor className="w-4 h-4 text-indigo-400" />
+                <h2 className="text-sm sm:text-base font-bold text-white truncate max-w-xs sm:max-w-md drop-shadow">
+                  Screen Share
+                </h2>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-sm sm:text-base font-bold text-white truncate max-w-xs sm:max-w-md drop-shadow">
+                  {movieMetadata?.name || 'Watch Party Stream'}
+                </h2>
+                {movieMetadata?.videoCodec && (
+                  <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-white/15 border border-white/10 text-[10px] uppercase font-mono tracking-wider text-slate-200">
+                    {movieMetadata.videoCodec}
+                  </span>
+                )}
+              </>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            {!canControl && (
-              <span className="flex items-center gap-1 text-xs text-indigo-300 bg-indigo-500/20 px-2.5 py-1 rounded-full border border-indigo-500/30">
-                <Lock className="w-3 h-3" /> Host controls playback
+            {!canControl && !isScreenMode && (
+              <span className="flex items-center gap-1 text-xs font-semibold text-indigo-200 bg-indigo-500/30 px-3 py-1 rounded-full border border-indigo-400/40 backdrop-blur-md">
+                <Lock className="w-3 h-3 text-indigo-300" /> Host controls playback
               </span>
             )}
-            <span className="text-xs text-gray-400 bg-black/40 px-2 py-1 rounded backdrop-blur">
-              {isHost ? 'Host Streaming 👑' : 'Synchronized Viewer 🟢'}
+            <span className="text-xs font-semibold text-slate-200 bg-black/50 border border-white/15 px-3 py-1 rounded-full backdrop-blur-md">
+              {isHost
+                ? isScreenMode
+                  ? 'Host Sharing 🖥'
+                  : 'Host Streaming 👑'
+                : isScreenMode
+                ? 'Live Screen 🟢'
+                : 'Synchronized Viewer 🟢'}
             </span>
           </div>
         </div>
 
         {/* Bottom Playback Controls */}
         <div className="space-y-2">
-          {/* Progress / Seek bar */}
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-300 font-mono w-10 text-right">{formatTime(currentTime)}</span>
-            <div className="flex-1 relative flex items-center">
-              <input
-                type="range"
-                min={0}
-                max={duration || 100}
-                step={0.1}
-                value={currentTime}
-                disabled={!canControl}
-                onChange={handleSeekChange}
-                className={`w-full h-1.5 bg-gray-700/60 rounded-lg appearance-none cursor-pointer transition ${
-                  canControl ? 'hover:h-2 accent-primary' : 'opacity-60 cursor-not-allowed'
-                }`}
-              />
+          {/* Progress / Seek bar — hidden in screen mode (live stream, no timeline) */}
+          {!isScreenMode && (
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-300 font-mono w-10 text-right">{formatTime(currentTime)}</span>
+              <div className="flex-1 relative flex items-center">
+                <input
+                  type="range"
+                  min={0}
+                  max={duration || 100}
+                  step={0.1}
+                  value={currentTime}
+                  disabled={!canControl}
+                  onChange={handleSeekChange}
+                  className={`w-full h-1.5 bg-gray-700/60 rounded-lg appearance-none cursor-pointer transition ${
+                    canControl ? 'hover:h-2 accent-primary' : 'opacity-60 cursor-not-allowed'
+                  }`}
+                />
+              </div>
+              <span className="text-xs text-gray-400 font-mono w-10">{formatTime(duration)}</span>
             </div>
-            <span className="text-xs text-gray-400 font-mono w-10">{formatTime(duration)}</span>
-          </div>
+          )}
 
           {/* Action Buttons Row */}
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-4">
-              {/* Play / Pause */}
-              <button
-                onClick={togglePlayPause}
-                disabled={!canControl}
-                className="w-9 h-9 rounded-full bg-white text-black hover:bg-gray-200 flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isPlaying ? <Pause className="w-4 h-4 fill-black" /> : <Play className="w-4 h-4 fill-black ml-0.5" />}
-              </button>
+              {/* Play / Pause — hidden in screen mode (controlled by native share UI) */}
+              {!isScreenMode && (
+                <button
+                  onClick={togglePlayPause}
+                  disabled={!canControl}
+                  className="w-9 h-9 rounded-full bg-white text-black hover:bg-gray-200 flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isPlaying ? <Pause className="w-4 h-4 fill-black" /> : <Play className="w-4 h-4 fill-black ml-0.5" />}
+                </button>
+              )}
 
-              {/* Skip back 10s */}
-              {canControl && (
+              {/* Skip back / forward — hidden in screen mode */}
+              {!isScreenMode && canControl && (
                 <button
                   onClick={() => onSeek(Math.max(0, currentTime - 10))}
                   className="text-gray-300 hover:text-white transition p-1.5"
@@ -297,8 +339,7 @@ export function CinemaPlayer({
                 </button>
               )}
 
-              {/* Skip forward 10s */}
-              {canControl && (
+              {!isScreenMode && canControl && (
                 <button
                   onClick={() => onSeek(Math.min(duration, currentTime + 10))}
                   className="text-gray-300 hover:text-white transition p-1.5"
@@ -308,7 +349,7 @@ export function CinemaPlayer({
                 </button>
               )}
 
-              {/* Volume */}
+              {/* Volume — shown in all modes */}
               <div className="flex items-center gap-2 group/volume">
                 <button onClick={toggleMute} className="text-gray-300 hover:text-white transition p-1.5">
                   {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
@@ -327,74 +368,76 @@ export function CinemaPlayer({
 
             {/* Right-side Utilities */}
             <div className="flex items-center gap-3">
-              {/* Host Select/Reattach File Button if video not loaded */}
-              {isHost && onReattachFile && (
+              {/* Host Select/Reattach File Button — movie mode only */}
+              {!isScreenMode && isHost && onReattachFile && (
                 <button
                   onClick={() => filePickerRef.current?.click()}
-                  className="px-2.5 py-1 text-xs rounded bg-surface border border-surface-border text-gray-300 hover:text-white transition"
+                  className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition backdrop-blur-md shadow-sm"
                   title="Choose / Change Local Movie"
                 >
                   Select File
                 </button>
               )}
 
-              {/* Audio & Subtitles dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-                  className={`p-2 rounded-lg transition ${
-                    showSettingsMenu ? 'bg-white/20 text-white' : 'text-gray-300 hover:text-white'
-                  }`}
-                  title="Audio & Subtitle Settings"
-                >
-                  <Subtitles className="w-4 h-4" />
-                </button>
+              {/* Audio & Subtitles dropdown — movie mode only */}
+              {!isScreenMode && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                    className={`p-2 rounded-xl transition ${
+                      showSettingsMenu ? 'bg-white/20 text-white' : 'text-slate-300 hover:text-white hover:bg-white/10'
+                    }`}
+                    title="Audio & Subtitle Settings"
+                  >
+                    <Subtitles className="w-4 h-4" />
+                  </button>
 
-                {showSettingsMenu && (
-                  <div className="absolute bottom-10 right-0 w-64 bg-surface border border-surface-border rounded-xl p-3 shadow-2xl space-y-3 z-30">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Tracks & Audio</h4>
+                  {showSettingsMenu && (
+                    <div className="absolute bottom-12 right-0 w-64 glass-panel rounded-2xl p-3.5 shadow-2xl space-y-3 z-30">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Tracks & Audio</h4>
 
-                    {/* Subtitle list */}
-                    <div>
-                      <span className="text-xs text-gray-300 block mb-1">Subtitles:</span>
-                      <div className="space-y-1 max-h-32 overflow-y-auto">
-                        <button
-                          onClick={() => {
-                            onSelectSubtitle?.('off');
-                            setShowSettingsMenu(false);
-                          }}
-                          className={`w-full text-left text-xs px-2.5 py-1.5 rounded-lg transition ${
-                            !selectedSubtitle || selectedSubtitle === 'off'
-                              ? 'bg-primary text-white font-semibold'
-                              : 'text-gray-400 hover:bg-surface-light'
-                          }`}
-                        >
-                          Off
-                        </button>
-                        {movieMetadata?.subtitles?.map((sub) => (
+                      {/* Subtitle list */}
+                      <div>
+                        <span className="text-xs text-slate-300 font-semibold block mb-1.5">Subtitles:</span>
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
                           <button
-                            key={sub.id}
                             onClick={() => {
-                              onSelectSubtitle?.(sub.id);
+                              onSelectSubtitle?.('off');
                               setShowSettingsMenu(false);
                             }}
-                            className={`w-full text-left text-xs px-2.5 py-1.5 rounded-lg transition ${
-                              selectedSubtitle === sub.id
-                                ? 'bg-primary text-white font-semibold'
-                                : 'text-gray-400 hover:bg-surface-light'
+                            className={`w-full text-left text-xs px-3 py-2 rounded-xl transition font-medium ${
+                              !selectedSubtitle || selectedSubtitle === 'off'
+                                ? 'bg-indigo-600 text-white font-bold'
+                                : 'text-slate-300 hover:bg-white/10'
                             }`}
                           >
-                            {sub.label || `Track (${sub.language})`}
+                            Off
                           </button>
-                        ))}
+                          {movieMetadata?.subtitles?.map((sub) => (
+                            <button
+                              key={sub.id}
+                              onClick={() => {
+                                onSelectSubtitle?.(sub.id);
+                                setShowSettingsMenu(false);
+                              }}
+                              className={`w-full text-left text-xs px-3 py-2 rounded-xl transition font-medium ${
+                                selectedSubtitle === sub.id
+                                  ? 'bg-indigo-600 text-white font-bold'
+                                  : 'text-slate-300 hover:bg-white/10'
+                              }`}
+                            >
+                              {sub.label || `Track (${sub.language})`}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
 
-              {/* Fullscreen Toggle */}
-              <button onClick={toggleFullscreen} className="text-gray-300 hover:text-white transition p-2">
+              {/* Fullscreen Toggle — shown in all modes */}
+              <button onClick={toggleFullscreen} className="text-slate-300 hover:text-white transition p-2 hover:bg-white/10 rounded-xl">
                 {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
               </button>
             </div>
